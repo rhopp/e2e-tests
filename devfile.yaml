@@ -1,0 +1,10 @@
+schemaVersion: 2.0.0
+metadata:
+  generateName: appstudio-e2e-
+projects:
+  - name: e2e-tests
+    git:
+      remotes:
+        origin: 'https://github.com/redhat-appstudio/e2e-tests.git'
+      checkoutFrom:
+        revision: main
