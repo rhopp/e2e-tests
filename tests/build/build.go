@@ -54,6 +54,7 @@ var _ = framework.BuildSuiteDescribe("Build service E2E tests", Label("build"), 
 		var webhookURL string
 
 		BeforeAll(func() {
+			fmt.Fprintln(GinkgoWriter, "=============RUNNING BEFORE ALL=============")
 
 			applicationName = fmt.Sprintf("build-suite-test-application-%s", util.GenerateRandomString(4))
 			testNamespace = fmt.Sprintf("e2e-test-%s", util.GenerateRandomString(4))
@@ -74,9 +75,11 @@ var _ = framework.BuildSuiteDescribe("Build service E2E tests", Label("build"), 
 			Expect(err).ShouldNot(HaveOccurred())
 
 			DeferCleanup(f.TektonController.DeleteAllPipelineRunsInASpecificNamespace, testNamespace)
+			fmt.Fprintln(GinkgoWriter, "=============AFTER ALL FINISHED=============")
 		})
 
 		It("triggers a PipelineRun", func() {
+			fmt.Fprintln(GinkgoWriter, "=============IT TRIGGERS A PIPELINERUN=============")
 			Eventually(func() bool {
 				pipelineRun, err := f.HasController.GetComponentPipelineRun(componentName, applicationName, testNamespace, false)
 				if err != nil {
@@ -88,11 +91,13 @@ var _ = framework.BuildSuiteDescribe("Build service E2E tests", Label("build"), 
 		})
 
 		When("the PipelineRun has started", func() {
+			fmt.Fprintln(GinkgoWriter, "=============WHEN PIPELINERUN HAS STARTED=============")
 			BeforeAll(func() {
 				timeout = time.Second * 600
 				interval = time.Second * 10
 			})
 			It("should eventually finish successfully", func() {
+				fmt.Fprintln(GinkgoWriter, "=============IT SHOULD FINISH EVENTUALLY=============")
 				Eventually(func() bool {
 					pipelineRun, err := f.HasController.GetComponentPipelineRun(componentName, applicationName, testNamespace, false)
 					Expect(err).ShouldNot(HaveOccurred())
@@ -112,6 +117,7 @@ var _ = framework.BuildSuiteDescribe("Build service E2E tests", Label("build"), 
 		})
 
 		When("the PipelineRun is finished", func() {
+			fmt.Fprintln(GinkgoWriter, "=============PIPELINERUN IS FINISHED=============")
 			var webhookName string
 
 			BeforeAll(func() {
@@ -122,6 +128,7 @@ var _ = framework.BuildSuiteDescribe("Build service E2E tests", Label("build"), 
 			})
 
 			It("eventually leads to a creation of a component webhook (event listener)", Label("webhook", "slow"), func() {
+				fmt.Fprintln(GinkgoWriter, "=============WEBHOOK CREATION=============")
 				Eventually(func() bool {
 					_, err := f.HasController.GetEventListenerRoute(componentName, testNamespace)
 					if err != nil {
@@ -205,7 +212,7 @@ var _ = framework.BuildSuiteDescribe("Build service E2E tests", Label("build"), 
 			BeforeAll(func() {
 				if utils.IsPrivateHostname(webhookRoute.Spec.Host) {
 					// Workaround for cleanup is needed because of the issue in ginkgo: https://github.com/onsi/ginkgo/issues/980
-					DeferCleanup(f.CommonController.DeleteNamespace, testNamespace)
+					// DeferCleanup(f.CommonController.DeleteNamespace, testNamespace)
 					Skip("Using private cluster (not reachable from Github), skipping...")
 				}
 
@@ -373,8 +380,10 @@ var _ = framework.BuildSuiteDescribe("Build service E2E tests", Label("build"), 
 		})
 
 		for i, gitUrl := range componentUrls {
+			fmt.Println(GinkgoWriter, fmt.Sprintf("GIT URL: %s", gitUrl))
 			gitUrl := gitUrl
 			It(fmt.Sprintf("triggers PipelineRun for component with source URL %s", gitUrl), Label("build-templates-e2e"), func() {
+				fmt.Fprintln(GinkgoWriter, "=============HELLLLLLL=============")
 				timeout := time.Second * 60
 				interval := time.Second * 1
 
@@ -386,10 +395,12 @@ var _ = framework.BuildSuiteDescribe("Build service E2E tests", Label("build"), 
 					}
 					return pipelineRun.HasStarted()
 				}, timeout, interval).Should(BeTrue(), "timed out when waiting for the %s PipelineRun to start", componentNames[i])
+				klog.Info("PipelineRun has been created ======================")
 			})
 		}
 
 		It("should reference the custom pipeline bundle in a PipelineRun", Label("build-templates-e2e"), func() {
+			klog.Info("SHOULD REFERENCE THE CUSTOM PIPELINE")
 			customBundleConfigMap, err := f.CommonController.GetConfigMap(constants.BuildPipelinesConfigMapName, testNamespace)
 			if err != nil {
 				if errors.IsNotFound(err) {

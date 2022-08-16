@@ -136,7 +136,7 @@ var _ = framework.JVMBuildSuiteDescribe("JVM Build Service E2E tests", Pending, 
 	})
 
 	BeforeAll(func() {
-		appStudioE2EApplicationsNamespace = utils.GetEnv(constants.E2E_APPLICATIONS_NAMESPACE_ENV, "appstudio-e2e-test")
+		appStudioE2EApplicationsNamespace = fmt.Sprintf("%s-%v", utils.GetEnv(constants.E2E_APPLICATIONS_NAMESPACE_ENV, "appstudio-e2e-test"), GinkgoParallelProcess())
 
 		klog.Infof("Test namespace: %s", appStudioE2EApplicationsNamespace)
 

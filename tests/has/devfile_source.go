@@ -21,7 +21,7 @@ import (
 
 var (
 	ComponentContainerImage           string = fmt.Sprintf("quay.io/%s/test-images:%s", utils.GetQuayIOOrganization(), strings.Replace(uuid.New().String(), "-", "", -1))
-	AppStudioE2EApplicationsNamespace string = utils.GetEnv(constants.E2E_APPLICATIONS_NAMESPACE_ENV, "appstudio-e2e-test")
+	AppStudioE2EApplicationsNamespace string = fmt.Sprintf("%s-%v", utils.GetEnv(constants.E2E_APPLICATIONS_NAMESPACE_ENV, "appstudio-e2e-test"), GinkgoParallelProcess())
 )
 
 /*
