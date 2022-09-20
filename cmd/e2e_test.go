@@ -3,15 +3,17 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/redhat-appstudio/e2e-tests/pkg/framework"
 
 	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo/v2/types"
 	"github.com/onsi/gomega"
 	_ "github.com/redhat-appstudio/e2e-tests/tests/build"
 	_ "github.com/redhat-appstudio/e2e-tests/tests/cluster-registration"
-	_ "github.com/redhat-appstudio/e2e-tests/tests/e2e-demos"
+	. "github.com/redhat-appstudio/e2e-tests/tests/e2e-demos"
 	_ "github.com/redhat-appstudio/e2e-tests/tests/has"
 	_ "github.com/redhat-appstudio/e2e-tests/tests/integration-service"
 	_ "github.com/redhat-appstudio/e2e-tests/tests/release"
@@ -43,6 +45,8 @@ func TestE2E(t *testing.T) {
 	// Setting viper configurations in cache
 	viper.Set("config-suites", demoSuitesPath)
 
+	GenerateE2EDemoTests()
+
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	ginkgo.RunSpecs(t, "Red Hat App Studio E2E tests")
 }
@@ -52,5 +56,36 @@ var _ = ginkgo.SynchronizedAfterSuite(func() {}, func() {
 	if len(webhookConfigPath) > 0 {
 		klog.Info("Send webhook")
 		framework.SendWebhook(webhookConfigPath)
+	}
+})
+
+var _ = ginkgo.ReportAfterSuite("myReporter", func(report types.Report) {
+
+	// m := make(map[string][]string)
+	// for i := range report.SpecReports {
+	// 	specReport := report.SpecReports[i]
+	// 	if specReport.LeafNodeType == types.NodeTypeIt {
+	// 		m[strings.Join(specReport.ContainerHierarchyTexts, ",")] = append(m[strings.Join(specReport.ContainerHierarchyTexts, ",")], specReport.LeafNodeText)
+	// 	}
+	// }
+	// for testCase, testSteps := range m {
+	// 	fmt.Printf("Test case: %s\n", testCase)
+	// 	for _, testStep := range testSteps {
+	// 		fmt.Printf("\t\tStep: %s\n", testStep)
+	// 	}
+	// }
+
+	m := make(map[string][]string)
+	for i := range report.SpecReports {
+		specReport := report.SpecReports[i]
+		if specReport.LeafNodeType == types.NodeTypeIt {
+			m[specReport.ContainerHierarchyTexts[0]] = append(m[specReport.ContainerHierarchyTexts[0]], strings.Join(append(specReport.ContainerHierarchyTexts[1:], specReport.LeafNodeText), ","))
+		}
+	}
+	for testCase, testSteps := range m {
+		fmt.Printf("Test case: %s\n", testCase)
+		for _, testStep := range testSteps {
+			fmt.Printf("\tStep: %s\n", testStep)
+		}
 	}
 })

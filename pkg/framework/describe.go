@@ -1,6 +1,8 @@
 package framework
 
 import (
+	"fmt"
+
 	. "github.com/onsi/ginkgo/v2"
 )
 
@@ -10,8 +12,8 @@ func HASSuiteDescribe(text string, args ...interface{}) bool {
 }
 
 // E2ESuiteDescribe annotates the e2e scenarios tests with the e2e-scenarios label.
-func E2ESuiteDescribe(args ...interface{}) bool {
-	return Describe("[e2e-demos-suite]", args, Ordered)
+func E2ESuiteDescribe(text string, args ...interface{}) bool {
+	return Describe(fmt.Sprintf("[e2e-demos-suite %s]", text), args, Ordered)
 }
 
 // CommonSuiteDescribe annotates the common tests with the application label.
