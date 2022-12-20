@@ -1,8 +1,14 @@
 package main
 
 import (
+	"bytes"
+	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -11,8 +17,14 @@ import (
 	"golang.org/x/text/language"
 
 	"github.com/magefile/mage/sh"
+	client "github.com/redhat-appstudio/e2e-tests/pkg/apis/kubernetes"
 	"github.com/redhat-appstudio/e2e-tests/pkg/utils"
 
+	toolchainApi "github.com/codeready-toolchain/api/api/v1alpha1"
+	"github.com/codeready-toolchain/toolchain-e2e/testsupport/md5"
+	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 )
 
@@ -410,6 +422,104 @@ func (Local) GenerateTestSpecFile() error {
 
 	return nil
 
+}
+
+func RegisterUser() error {
+	kubeClient, err := client.NewK8SClient()
+	if err != nil {
+		return err
+	}
+	// namespaceList, err := kubeClient.KubeInterface().CoreV1().Namespaces().List(context.TODO(), v1.ListOptions{})
+	// if err != nil {
+	// 	return err
+	// }
+	// fmt.Printf("%+v", namespaceList)
+
+	// kubeClient.KubeRest().List(context.TODO(), )
+	userSignup := &toolchainApi.UserSignup{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "user1",
+			Namespace: "toolchain-host-operator",
+			Annotations: map[string]string{
+				"toolchain.dev.openshift.com/user-email": "user1@user.us",
+			},
+			Labels: map[string]string{
+				"toolchain.dev.openshift.com/email-hash": md5.CalcMd5("user1@user.us"),
+			},
+		},
+		Spec: toolchainApi.UserSignupSpec{
+			Userid:   "user1",
+			Username: "user1",
+			States:   []toolchainApi.UserSignupState{"approved"},
+		},
+	}
+	fmt.Printf("Creating: %+v\n", userSignup)
+	kubeClient.KubeRest().Create(context.TODO(), userSignup)
+	utils.WaitUntil(func() (done bool, err error) {
+		err = kubeClient.KubeRest().Get(context.TODO(), types.NamespacedName{
+			Namespace: "toolchain-host-operator",
+			Name:      "user1",
+		}, userSignup)
+		if err != nil {
+			return false, err
+		}
+		fmt.Printf("Waiting. %+v\n", userSignup)
+		for _, condition := range userSignup.Status.Conditions {
+			if condition.Type == "Complete" && condition.Status == corev1.ConditionTrue {
+				return true, nil
+			}
+		}
+		return false, nil
+	}, 2*time.Minute)
+	return nil
+}
+
+func GenerateUserKubeconfig() error {
+	client := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
+	}
+
+	data := url.Values{}
+	data.Set("client_id", "sandbox-public")
+	data.Set("password", "user1")
+	data.Set("username", "user1")
+	data.Set("grant_type", "password")
+
+	req, err := http.NewRequest("POST", "https://keycloak-dev-sso.apps.rhopp20221221.devcluster.openshift.com/auth/realms/testrealm/protocol/openid-connect/token", bytes.NewBufferString(data.Encode()))
+	if err != nil {
+		return err
+		// handle error
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+		// handle error
+	}
+	defer resp.Body.Close()
+	fmt.Printf("Response: %+v\n", resp)
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+		// handle error
+	}
+	fmt.Printf("Body: %s\n", body)
+	token := struct {
+		AccessToken string `json:"access_token"`
+	}{}
+
+	json.Unmarshal(body, &token)
+	fmt.Printf("Token: %s", token.AccessToken)
+
+	// kubeconfig
+
+	return nil
 }
 
 func appendFrameworkDescribeFile(packageName string) error {
