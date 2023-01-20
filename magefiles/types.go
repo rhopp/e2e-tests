@@ -4,6 +4,7 @@ import "github.com/magefile/mage/mg"
 
 type Local mg.Namespace
 type CI mg.Namespace
+type EphemeralHac mg.Namespace
 
 type OpenshiftJobSpec struct {
 	Refs Refs `json:"refs"`
