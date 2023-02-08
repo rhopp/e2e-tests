@@ -10,6 +10,7 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/magefile/mage/sh"
 	kubeCl "github.com/redhat-appstudio/e2e-tests/pkg/apis/kubernetes"
 	"github.com/redhat-appstudio/e2e-tests/pkg/utils"
 	corev1 "k8s.io/api/core/v1"
@@ -107,7 +108,20 @@ func (i *InstallAppStudio) InstallAppStudioPreviewMode() error {
 	}
 	i.setInstallationEnvironments()
 
+	hacTempDir, err := os.MkdirTemp("", "hac")
+	if err != nil {
+		return err
+	}
+	hacKubeconfigPath := fmt.Sprintf("%s/kubeconfig", hacTempDir)
+	sh.RunWithV(map[string]string{"KUBECONFIG": hacKubeconfigPath}, "oc", "login", fmt.Sprintf("--token=%s", os.Getenv("HAC_SA_TOKEN")), "--server=https://api.c-rh-c-eph.8p0c.p1.openshiftapps.com:6443")
+
 	if err := utils.ExecuteCommandInASpecificDirectory("hack/bootstrap-cluster.sh", previewInstallArgs, i.InfraDeploymentsCloneDir); err != nil {
+		return err
+	}
+
+	stonesoupKubeconfigPath := os.Getenv("KUBECONFIG")
+
+	if err := utils.ExecuteCommandInASpecificDirectory("hack/hac/installhac.sh", []string{"-ehk", hacKubeconfigPath, "-sk", stonesoupKubeconfigPath}, i.InfraDeploymentsCloneDir); err != nil {
 		return err
 	}
 
@@ -139,8 +153,8 @@ func (i *InstallAppStudio) cloneInfraDeployments() (*git.Remote, error) {
 		}
 	}
 
-	url := fmt.Sprintf("https://github.com/%s/infra-deployments", i.InfraDeploymentsOrganizationName)
-	refName := fmt.Sprintf("refs/heads/%s", i.InfraDeploymentsBranch)
+	url := fmt.Sprintf("https://github.com/%s/infra-deployments", "rhopp")
+	refName := fmt.Sprintf("refs/heads/%s", "installHAC")
 	klog.Infof("cloning '%s' with git ref '%s'", url, refName)
 	repo, _ := git.PlainClone(i.InfraDeploymentsCloneDir, false, &git.CloneOptions{
 		URL:           url,

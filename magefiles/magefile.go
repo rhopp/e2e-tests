@@ -178,6 +178,28 @@ func (Local) CleanupGithubOrg() error {
 	return nil
 }
 
+func (Local) InstallBonfire() error {
+	fmt.Printf("TEsT'")
+	err := sh.RunV("curl", "-s", "https://raw.githubusercontent.com/RedHatInsights/bonfire/master/cicd/bootstrap.sh", "-o", ".cicd_bootstrap.sh")
+	if err != nil {
+		return err
+	}
+	sh.RunV("ls", "-la")
+	err = sh.RunV("/bin/bash", ".cicd_bootstrap.sh")
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (local Local) InstallEphemeralHAC() error {
+	if err := local.InstallBonfire(); err != nil {
+		return fmt.Errorf("errror %v", err)
+	}
+	sh.RunV("bonfire", "namespace", "list")
+	return nil
+}
+
 func (ci CI) TestE2E() error {
 	var testFailure bool
 
