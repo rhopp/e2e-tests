@@ -221,7 +221,8 @@ func (ci CI) TestE2E() error {
 
 	//DIRTY BUSINESS
 
-	utils.ExecuteCommandInASpecificDirectory("npm", []string{"install"}, fmt.Sprintf("%s/%s/hac-dev/integration-tests", os.Getwd(), "tmp"))
+	dir, _ := os.Getwd()
+	utils.ExecuteCommandInASpecificDirectory("npm", []string{"install"}, fmt.Sprintf("%s/%s/hac-dev/integration-tests", dir, "tmp"))
 
 	//END DIRTY BUSINESS
 
