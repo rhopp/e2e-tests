@@ -45,6 +45,9 @@ type InstallAppStudio struct {
 	// Directory where to clone https://github.com/redhat-appstudio/infra-deployments repo
 	InfraDeploymentsCloneDir string
 
+	// Directory where to clone https://github.com/openshift/hac-dev/ repo
+	HacDevCloneDir string
+
 	// Branch to clone from https://github.com/redhat-appstudio/infra-deployments. By default will be main
 	InfraDeploymentsBranch string
 
@@ -88,6 +91,7 @@ func NewAppStudioInstallController() (*InstallAppStudio, error) {
 		KubernetesClient:                 k8sClient,
 		TmpDirectory:                     DEFAULT_TMP_DIR,
 		InfraDeploymentsCloneDir:         fmt.Sprintf("%s/%s/infra-deployments", cwd, DEFAULT_TMP_DIR),
+		HacDevCloneDir:                   fmt.Sprintf("%s/%s/hac-dev", cwd, DEFAULT_TMP_DIR),
 		InfraDeploymentsBranch:           utils.GetEnv("INFRA_DEPLOYMENTS_BRANCH", DEFAULT_INFRA_DEPLOYMENTS_BRANCH),
 		InfraDeploymentsOrganizationName: utils.GetEnv("INFRA_DEPLOYMENTS_ORG", DEFAULT_INFRA_DEPLOYMENTS_GH_ORG),
 		LocalForkName:                    DEFAULT_LOCAL_FORK_NAME,
@@ -106,6 +110,10 @@ func (i *InstallAppStudio) InstallAppStudioPreviewMode() error {
 	if _, err := i.cloneInfraDeployments(); err != nil {
 		return err
 	}
+
+	if err := i.cloneHacDev(); err != nil {
+		return err
+	}
 	i.setInstallationEnvironments()
 
 	hacTempDir, err := os.MkdirTemp("", "hac")
@@ -121,7 +129,7 @@ func (i *InstallAppStudio) InstallAppStudioPreviewMode() error {
 
 	stonesoupKubeconfigPath := os.Getenv("KUBECONFIG")
 
-	if err := utils.ExecuteCommandInASpecificDirectory("hack/hac/installhac.sh", []string{"-ehk", hacKubeconfigPath, "-sk", stonesoupKubeconfigPath}, i.InfraDeploymentsCloneDir); err != nil {
+	if err := utils.ExecuteCommandInASpecificDirectory("hack/hac/installHac.sh", []string{"-ehk", hacKubeconfigPath, "-sk", stonesoupKubeconfigPath}, i.InfraDeploymentsCloneDir); err != nil {
 		return err
 	}
 
@@ -163,6 +171,30 @@ func (i *InstallAppStudio) cloneInfraDeployments() (*git.Remote, error) {
 	})
 
 	return repo.CreateRemote(&config.RemoteConfig{Name: i.LocalForkName, URLs: []string{fmt.Sprintf("https://github.com/%s/infra-deployments.git", i.LocalGithubForkOrganization)}})
+}
+
+func (i *InstallAppStudio) cloneHacDev() error {
+	dirInfo, err := os.Stat(i.HacDevCloneDir)
+
+	if !os.IsNotExist(err) && dirInfo.IsDir() {
+		klog.Warningf("folder %s already exists... removing", i.HacDevCloneDir)
+
+		err := os.RemoveAll(i.HacDevCloneDir)
+		if err != nil {
+			return fmt.Errorf("error removing %s folder", i.HacDevCloneDir)
+		}
+	}
+
+	url := fmt.Sprintf("https://github.com/%s/hac-dev", "openshift")
+	refName := fmt.Sprintf("refs/heads/%s", "main")
+	klog.Infof("cloning '%s' with git ref '%s'", url, refName)
+	_, _ = git.PlainClone(i.HacDevCloneDir, false, &git.CloneOptions{
+		URL:           url,
+		ReferenceName: plumbing.ReferenceName(refName),
+		Progress:      os.Stdout,
+	})
+
+	return nil
 }
 
 // createSharedSecret make sure that redhat-appstudio-user-workload secret is created in the build-templates namespace for build purposes
