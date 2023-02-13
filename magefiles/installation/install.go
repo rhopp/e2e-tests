@@ -129,6 +129,8 @@ func (i *InstallAppStudio) InstallAppStudioPreviewMode() error {
 
 	stonesoupKubeconfigPath := os.Getenv("KUBECONFIG")
 	os.Setenv("QONTRACT_BASE_URL", "https://app-interface.devshift.net/graphql")
+	os.Setenv("LC_ALL", "en_US.utf-8")
+	os.Setenv("LANG", "en_US.utf-8")
 
 	if err := utils.ExecuteCommandInASpecificDirectory("hack/hac/installHac.sh", []string{"-ehk", hacKubeconfigPath, "-sk", stonesoupKubeconfigPath}, i.InfraDeploymentsCloneDir); err != nil {
 		return err
