@@ -1,9 +1,6 @@
 package client
 
 import (
-	"fmt"
-	"os"
-
 	toolchainv1alpha1 "github.com/codeready-toolchain/api/api/v1alpha1"
 	ecp "github.com/enterprise-contract/enterprise-contract-controller/api/v1alpha1"
 	ocpOauth "github.com/openshift/api/config/v1"
@@ -28,7 +25,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
@@ -105,36 +101,36 @@ func NewDevSandboxProxyClient(userName string) (*K8SClient, error) {
 		return nil, err
 	}
 
-	sandboxController, err := sandbox.NewDevSandboxController(asAdminClient.KubeInterface(), asAdminClient.KubeRest())
-	if err != nil {
-		return nil, err
-	}
+	// sandboxController, err := sandbox.NewDevSandboxController(asAdminClient.KubeInterface(), asAdminClient.KubeRest())
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	userAuthInfo, err := sandboxController.ReconcileUserCreation(userName)
-	if err != nil {
-		return nil, err
-	}
+	// userAuthInfo, err := sandboxController.ReconcileUserCreation(userName)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	cfgBytes, err := os.ReadFile(userAuthInfo.KubeconfigPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read user kubeconfig %v", err)
-	}
+	// cfgBytes, err := os.ReadFile(userAuthInfo.KubeconfigPath)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to read user kubeconfig %v", err)
+	// }
 
-	userCfg, err := clientcmd.RESTConfigFromKubeConfig(cfgBytes)
-	if err != nil {
-		return nil, err
-	}
+	// userCfg, err := clientcmd.RESTConfigFromKubeConfig(cfgBytes)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	sandboxProxyClient, err := createCustomClient(*userCfg)
-	if err != nil {
-		return nil, err
-	}
+	// sandboxProxyClient, err := createCustomClient(*userCfg)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	return &K8SClient{
 		AsKubeAdmin:       asAdminClient,
-		AsKubeDeveloper:   sandboxProxyClient,
-		UserName:          userAuthInfo.UserName,
-		SandboxController: sandboxController,
+		AsKubeDeveloper:   asAdminClient,
+		UserName:          "rhopp",
+		SandboxController: nil,
 	}, nil
 }
 

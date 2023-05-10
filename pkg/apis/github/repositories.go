@@ -10,6 +10,7 @@ import (
 
 func (g *Github) CheckIfRepositoryExist(repository string) bool {
 	_, resp, err := g.client.Repositories.Get(context.Background(), g.organization, repository)
+	fmt.Printf("checking if github repo exists")
 	if err != nil {
 		GinkgoWriter.Printf("error when sending request to Github API: %v\n", err)
 		return false

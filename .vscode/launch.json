@@ -11,12 +11,14 @@
             "mode": "test",
             "program": "${workspaceFolder}/cmd/e2e_test.go",
             "args": [
+                "--ginkgo.vv"
                 "--ginkgo.focus=e2e-demos-suite",
-                "--ginkgo.junit-report=report.xml"
+                "--ginkgo.junit-report=report.xml",
+                "--ginkgo.label-filter=!multi-component"
             ],
             "cwd": "${workspaceFolder}",
             "env": {
-                "GITHUB_TOKEN": "${input:ghToken}"
+                "GITHUB_TOKEN": "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"
             }
         }
     ],

@@ -40,6 +40,7 @@ type Framework struct {
 }
 
 func NewFramework(userName string) (*Framework, error) {
+	fmt.Printf("Initializing framework")
 	var err error
 	var k *kubeCl.K8SClient
 
