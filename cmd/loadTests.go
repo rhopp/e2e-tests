@@ -23,7 +23,7 @@ import (
 	loadtestUtils "github.com/redhat-appstudio/e2e-tests/pkg/utils/loadtests"
 	integrationv1beta1 "github.com/redhat-appstudio/integration-service/api/v1beta1"
 	"github.com/spf13/cobra"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	tektonv1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -68,14 +68,14 @@ var (
 	DeploymentSucceededTimeMaxPerThread                  []time.Duration
 	IntegrationTestsPipelineRunSucceededTimeMaxPerThread []time.Duration
 
-	UserCreationTimeSumPerThread         []time.Duration
-	ApplicationCreationTimeSumPerThread  []time.Duration
-	ItsCreationTimeSumPerThread          []time.Duration
-	CDQCreationTimeSumPerThread          []time.Duration
-	ComponentCreationTimeSumPerThread    []time.Duration
-	PipelineRunSucceededTimeSumPerThread []time.Duration
-	PipelineRunFailedTimeSumPerThread    []time.Duration
-	PipelineRunWaitTimeForPVCSumPerThread[]time.Duration
+	UserCreationTimeSumPerThread          []time.Duration
+	ApplicationCreationTimeSumPerThread   []time.Duration
+	ItsCreationTimeSumPerThread           []time.Duration
+	CDQCreationTimeSumPerThread           []time.Duration
+	ComponentCreationTimeSumPerThread     []time.Duration
+	PipelineRunSucceededTimeSumPerThread  []time.Duration
+	PipelineRunFailedTimeSumPerThread     []time.Duration
+	PipelineRunWaitTimeForPVCSumPerThread []time.Duration
 
 	DeploymentSucceededTimeSumPerThread                  []time.Duration
 	DeploymentFailedTimeSumPerThread                     []time.Duration
@@ -1366,7 +1366,7 @@ func userJourneyThread(frameworkMap *sync.Map, threadWaitGroup *sync.WaitGroup, 
 				applicationName := fmt.Sprintf("%s-app", username)
 				pipelineCreatedRetryInterval := time.Second * 20
 				pipelineCreatedTimeout := time.Minute * 15
-				var pipelineRun *v1beta1.PipelineRun
+				var pipelineRun *tektonv1.PipelineRun
 				err := k8swait.PollUntilContextTimeout(context.Background(), pipelineCreatedRetryInterval, pipelineCreatedTimeout, false, func(ctx context.Context) (done bool, err error) {
 					// Searching for "build" type of pipelineRun
 					pipelineRun, err = framework.AsKubeDeveloper.HasController.GetComponentPipelineRunWithType(componentName, applicationName, usernamespace, "build", "")
@@ -1398,19 +1398,19 @@ func userJourneyThread(frameworkMap *sync.Map, threadWaitGroup *sync.WaitGroup, 
 					if pipelineRun.IsDone() {
 						succeededCondition := pipelineRun.Status.GetCondition(apis.ConditionSucceeded)
 						pvcs, err := framework.AsKubeAdmin.TektonController.KubeInterface().CoreV1().PersistentVolumeClaims(pipelineRun.Namespace).List(context.Background(), metav1.ListOptions{})
+						if err != nil {
+							logError(23, fmt.Sprintf("Error getting PVC: %v\n", err))
+						}
+						for _, pvc := range pvcs.Items {
+							pv, err := framework.AsKubeAdmin.TektonController.KubeInterface().CoreV1().PersistentVolumes().Get(context.Background(), pvc.Spec.VolumeName, metav1.GetOptions{})
 							if err != nil {
-								logError(23, fmt.Sprintf("Error getting PVC: %v\n", err))
+								logError(24, fmt.Sprintf("Error getting PV: %v\n", err))
+								continue
 							}
-							for _, pvc := range pvcs.Items {
-								pv, err := framework.AsKubeAdmin.TektonController.KubeInterface().CoreV1().PersistentVolumes().Get(context.Background(), pvc.Spec.VolumeName, metav1.GetOptions{})
-								if err != nil {
-									logError(24, fmt.Sprintf("Error getting PV: %v\n", err))
-									continue
-								}
-								waittime := (pv.ObjectMeta.CreationTimestamp.Time).Sub(pvc.ObjectMeta.CreationTimestamp.Time)
-								PipelineRunWaitTimeForPVCSumPerThread[threadIndex] += waittime
-								SuccessfulPVCCreationsPerThread[threadIndex] += 1
-							}
+							waittime := (pv.ObjectMeta.CreationTimestamp.Time).Sub(pvc.ObjectMeta.CreationTimestamp.Time)
+							PipelineRunWaitTimeForPVCSumPerThread[threadIndex] += waittime
+							SuccessfulPVCCreationsPerThread[threadIndex] += 1
+						}
 						if succeededCondition.IsFalse() {
 							dur := pipelineRun.Status.CompletionTime.Sub(pipelineRun.CreationTimestamp.Time)
 							PipelineRunFailedTimeSumPerThread[threadIndex] += dur
@@ -1481,7 +1481,7 @@ func userJourneyThread(frameworkMap *sync.Map, threadWaitGroup *sync.WaitGroup, 
 					continue
 				}
 
-				var IntegrationTestsPipelineRun *v1beta1.PipelineRun
+				var IntegrationTestsPipelineRun *tektonv1.PipelineRun
 				err = k8swait.PollUntilContextTimeout(context.Background(), IntegrationTestsPipelineCreatedRetryInterval, IntegrationTestsPipelineCreatedTimeout, false, func(ctx context.Context) (done bool, err error) {
 					IntegrationTestsPipelineRun, err = framework.AsKubeDeveloper.IntegrationController.GetIntegrationPipelineRun(testScenarioName, snapshot.Name, usernamespace)
 					if err != nil {
