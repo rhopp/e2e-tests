@@ -48,3 +48,7 @@ func ReleaseServiceSuiteDescribe(text string, args ...interface{}) bool {
 func TknBundleSuiteDescribe(text string, args ...interface{}) bool {
 	return ginkgo.Describe("[task-suite "+text+"]", args, ginkgo.Ordered)
 }
+
+func TsfDemoSuiteDescribe(args ...interface{}) bool {
+	return ginkgo.Describe("[tsf-demo-suite]", args)
+}

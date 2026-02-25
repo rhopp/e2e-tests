@@ -17,6 +17,7 @@ import (
 	_ "github.com/konflux-ci/e2e-tests/tests/konflux-demo"
 	_ "github.com/konflux-ci/e2e-tests/tests/release/pipelines"
 	_ "github.com/konflux-ci/e2e-tests/tests/release/service"
+	_ "github.com/konflux-ci/e2e-tests/tests/tsf"
 	_ "github.com/konflux-ci/e2e-tests/tests/upgrade"
 
 	"flag"
